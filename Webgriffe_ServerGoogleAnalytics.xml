@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<config>
+    <modules>
+        <Webgriffe_ServerGoogleAnalytics>
+            <active>true</active>
+            <codePool>community</codePool>
+            <depend>
+                <Mage_GoogleAnalytics />
+            </depend>
+        </Webgriffe_ServerGoogleAnalytics>
+    </modules>
+</config>

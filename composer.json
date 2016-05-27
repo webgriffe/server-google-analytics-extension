@@ -1,0 +1,24 @@
+{
+  "name": "webgriffe/server-google-analytics-extension",
+  "type": "magento-module",
+  "description": "Server side Google analytics universal tracking for Magento.",
+  "license": "Commercial",
+  "authors": [
+    {
+      "name": "Webgriffe®",
+      "email": "info@webgriffe.com"
+    }
+  ],
+  "require": {
+    "krizon/php-ga-measurement-protocol": "*"
+  },
+  "suggest": {
+    "fooman/googleanalyticsplus": "A free module that adds several configuration options, as well as support for google analytics universal"
+  },
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "http://packages.firegento.com"
+    }
+  ]
+}

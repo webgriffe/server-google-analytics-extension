@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<config>
+    <modules>
+        <Webgriffe_ServerGoogleAnalytics>
+            <version>1.0.0</version>
+        </Webgriffe_ServerGoogleAnalytics>
+    </modules>
+    <global>
+        <models>
+            <webgriffe_servergoogleanalytics>
+                <class>Webgriffe_ServerGoogleAnalytics_Model</class>
+                <resourceModel>webgriffe_servergoogleanalytics_resource</resourceModel>
+            </webgriffe_servergoogleanalytics>
+            <webgriffe_servergoogleanalytics_resource>
+                <class>Webgriffe_ServerGoogleAnalytics_Model_Resource</class>
+            </webgriffe_servergoogleanalytics_resource>
+        </models>
+        <blocks>
+            <webgriffe_servergoogleanalytics>
+                <class>Webgriffe_ServerGoogleAnalytics_Block</class>
+            </webgriffe_servergoogleanalytics>
+        </blocks>
+        <helpers>
+            <webgriffe_servergoogleanalytics>
+                <class>Webgriffe_ServerGoogleAnalytics_Helper</class>
+            </webgriffe_servergoogleanalytics>
+        </helpers>
+    </global>
+</config>
