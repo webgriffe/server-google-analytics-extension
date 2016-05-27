@@ -15,9 +15,12 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
     const GA_ALREADY_SENT_ADDITIONAL_INFORMATION_KEY    = 'ga_already_sent';
     const GA_CLIENT_ID_ADDITIONAL_INFORMATION_KEY       = 'ga_client_id';
 
+    /**
+     * @return bool
+     */
     public function isEnabled()
     {
-        return Mage::getStoreConfig(self::XML_PATH_SERVERGOOGLEANALYTICS_ENABLED);
+        return Mage::getStoreConfigFlag(self::XML_PATH_SERVERGOOGLEANALYTICS_ENABLED);
     }
 
     /**
@@ -39,10 +42,8 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             }
 
             $universalResult = false;
-            if (Mage::getStoreConfigFlag('google/analytics/active') &&
-                Mage::getStoreConfig('google/analytics/type') == Mage_GoogleAnalytics_Helper_Data::TYPE_UNIVERSAL &&
-                Mage::getStoreConfig('google/analytics/account')) {
-                if ($universalResult = $this->doTrackUniversal($order)) {
+            if ($this->isGaUniversalTrackingActive()) {
+                if ($universalResult = $this->trackConversionGaUniversal($order)) {
                     $this->log("Transaction tracked for Order '%s' with GA universal", $order->getIncrementId());
                 }
             } else {
@@ -63,7 +64,17 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
         }
     }
 
-    protected function doTrackUniversal(Mage_Sales_Model_Order $order)
+    /**
+     * @return bool
+     */
+    protected function isGaUniversalTrackingActive()
+    {
+        return Mage::getStoreConfigFlag('google/analytics/active') &&
+            Mage::getStoreConfig('google/analytics/type') == Mage_GoogleAnalytics_Helper_Data::TYPE_UNIVERSAL &&
+            Mage::getStoreConfig('google/analytics/account');
+    }
+
+    protected function trackConversionGaUniversal(Mage_Sales_Model_Order $order)
     {
         $accountNumber = Mage::getStoreConfig('google/analytics/account');
 

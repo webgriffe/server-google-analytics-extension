@@ -35,10 +35,17 @@ class Webgriffe_ServerGoogleAnalytics_Model_Observer
         $order = $observer->getData('order');
         $clientId = Mage::app()->getRequest()->getCookie(self::GA_COOKIE_NAME, null);
         if ($clientId) {
-            $this->helper->log("Client ID: ".$clientId);
-            $this->helper->setClientId($order, $clientId);
+            $oldClientId = $this->helper->getClientId($order);
+            if ($oldClientId != $clientId) {
+
+            } else {
+                $this->helper->log(sprintf('Saving client ID "%s" on order %s', $clientId, $order->getIncrementId()));
+                $this->helper->setClientId($order, $clientId);
+            }
+
+
         } else {
-            $this->helper->log("No client ID found");
+            $this->helper->log(sprintf('No client ID found for order %s', $order->getIncrementId()));
         }
     }
 
