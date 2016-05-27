@@ -10,8 +10,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
 {
     const LOG_FILENAME                                  = 'Webgriffe_ServerGoogleAnalytics.log';
 
-    const XML_PATH_SERVERGOOGLEANALYTICS_ENABLED        = 'google/paypalga/enabled';
-    const XML_PATH_PAYPALGA_AUTHORIZE_BEHAVIOR          = 'google/paypalga/authorize_behavior';
+    const XML_PATH_SERVERGOOGLEANALYTICS_ENABLED        = 'google/servergoogleanalytics/enabled';
 
     const GA_ALREADY_SENT_ADDITIONAL_INFORMATION_KEY    = 'ga_already_sent';
     const GA_CLIENT_ID_ADDITIONAL_INFORMATION_KEY       = 'ga_client_id';
@@ -151,16 +150,6 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
     {
         return $order->getPayment()->setAdditionalInformation(self::GA_CLIENT_ID_ADDITIONAL_INFORMATION_KEY, $value)
             ->save();
-    }
-
-    public function getValidPaymentStates()
-    {
-        $states = array('Completed', 'Created');
-        if (strtolower(Mage::getStoreConfig(self::XML_PATH_PAYPALGA_AUTHORIZE_BEHAVIOR)) ==
-            strtolower(Mage_Paypal_Model_Config::PAYMENT_ACTION_AUTH)) {
-            $states[] = 'Pending';
-        }
-        return $states;
     }
 
     protected function getCategory(Mage_Sales_Model_Order_Item $item)

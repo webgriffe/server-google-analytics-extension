@@ -6,15 +6,6 @@
         </Webgriffe_ServerGoogleAnalytics>
     </modules>
     <global>
-        <models>
-            <webgriffe_servergoogleanalytics>
-                <class>Webgriffe_ServerGoogleAnalytics_Model</class>
-                <resourceModel>webgriffe_servergoogleanalytics_resource</resourceModel>
-            </webgriffe_servergoogleanalytics>
-            <webgriffe_servergoogleanalytics_resource>
-                <class>Webgriffe_ServerGoogleAnalytics_Model_Resource</class>
-            </webgriffe_servergoogleanalytics_resource>
-        </models>
         <blocks>
             <webgriffe_servergoogleanalytics>
                 <class>Webgriffe_ServerGoogleAnalytics_Block</class>
@@ -25,5 +16,35 @@
                 <class>Webgriffe_ServerGoogleAnalytics_Helper</class>
             </webgriffe_servergoogleanalytics>
         </helpers>
+        <models>
+            <webgriffe_servergoogleanalytics>
+                <class>Webgriffe_ServerGoogleAnalytics_Model</class>
+                <resourceModel>webgriffe_servergoogleanalytics_resource</resourceModel>
+            </webgriffe_servergoogleanalytics>
+            <webgriffe_servergoogleanalytics_resource>
+                <class>Webgriffe_ServerGoogleAnalytics_Model_Resource</class>
+            </webgriffe_servergoogleanalytics_resource>
+        </models>
+
+        <events>
+            <sales_order_save_before>
+                <observers>
+                    <webgriffe_servergoogleanalytics>
+                        <type>singleton</type>
+                        <class>webgriffe_servergoogleanalytics/observer</class>
+                        <method>saveGaCookieValue</method>
+                    </webgriffe_servergoogleanalytics>
+                </observers>
+            </sales_order_save_before>
+            <sales_order_invoice_pay>
+                <observers>
+                    <webgriffe_servergoogleanalytics>
+                        <type>singleton</type>
+                        <class>webgriffe_servergoogleanalytics/observer</class>
+                        <method>onInvoicePaid</method>
+                    </webgriffe_servergoogleanalytics>
+                </observers>
+            </sales_order_invoice_pay>
+        </events>
     </global>
 </config>
