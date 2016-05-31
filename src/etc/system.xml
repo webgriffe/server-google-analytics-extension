@@ -4,7 +4,7 @@
         <google>
             <groups>
                 <servergoogleanalytics translate="label">
-                    <label>Server side Google analytics transactions tracking</label>
+                    <label>Server side Google analytics universal transactions tracking</label>
                     <sort_order>20</sort_order>
                     <show_in_default>1</show_in_default>
                     <show_in_website>1</show_in_website>

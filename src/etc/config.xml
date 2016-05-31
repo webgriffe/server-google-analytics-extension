@@ -10,6 +10,11 @@
             <webgriffe_servergoogleanalytics>
                 <class>Webgriffe_ServerGoogleAnalytics_Block</class>
             </webgriffe_servergoogleanalytics>
+            <googleanalytics>
+                <rewrite>
+                    <ga>Webgriffe_ServerGoogleAnalytics_Block_GoogleAnalytics_Ga</ga>
+                </rewrite>
+            </googleanalytics>
         </blocks>
         <helpers>
             <webgriffe_servergoogleanalytics>

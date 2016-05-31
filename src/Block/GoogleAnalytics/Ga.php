@@ -9,7 +9,8 @@
 class Webgriffe_ServerGoogleAnalytics_Block_GoogleAnalytics_Ga extends Mage_GoogleAnalytics_Block_Ga
 {
     /**
-     * Il tracciamento degli ordini viene fatto solo lato server al momento del pay() della fattura
+     * Il tracciamento degli ordini viene fatto solo lato server al momento del pay() della fattura. Quindi si
+     * disabilita il codice javascript per il tracciamento della conversione nella thank you page
      *
      * @return string
      */
