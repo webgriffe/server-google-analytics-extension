@@ -18,6 +18,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
+                            <comment>Google analytics universal must be configured and enabled for server side tracking to work</comment>
                         </enabled>
                     </fields>
                 </servergoogleanalytics>
