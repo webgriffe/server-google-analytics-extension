@@ -32,7 +32,7 @@
         </models>
 
         <events>
-            <sales_order_save_before>
+            <sales_order_save_after>
                 <observers>
                     <webgriffe_servergoogleanalytics>
                         <type>singleton</type>
@@ -40,7 +40,7 @@
                         <method>saveGaCookieValue</method>
                     </webgriffe_servergoogleanalytics>
                 </observers>
-            </sales_order_save_before>
+            </sales_order_save_after>
             <sales_order_invoice_pay>
                 <observers>
                     <webgriffe_servergoogleanalytics>

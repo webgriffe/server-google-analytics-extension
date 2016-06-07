@@ -21,7 +21,10 @@ class Webgriffe_ServerGoogleAnalytics_Model_Observer
     }
 
     /**
-     * Event: sales_order_save_before
+     * Event: sales_order_save_after
+     *
+     * Si salva un dato nel payment, che ha una chiave esterna verso l'order. Quindi bisogna farlo sul save after
+     * dell'ordine, cioè quando esiste sul DB un ordine da referenziare
      *
      * @param Varien_Event_Observer $observer
      */
