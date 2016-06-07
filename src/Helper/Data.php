@@ -32,35 +32,38 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             return;
         }
 
-        $this->log("Requested server to server tracking for order %s", $order->getIncrementId());
+        $this->log("Requested server to server tracking for order '{$order->getIncrementId()}'");
         try {
-            $gaAlreadySent = $this->checkGaAlreadySent($order);
-            $this->log("GA Already Sent: %s", ($gaAlreadySent ? 'Yes' : 'No'));
-
-            if ($gaAlreadySent) {
+            if ($this->checkGaAlreadySent($order)) {
+                $this->log("Google analytics tracking already sent for order '{$order->getIncrementId()}'");
                 return;
             }
 
-            $universalResult = false;
-            if ($this->isGaUniversalTrackingActive()) {
-                if ($universalResult = $this->trackConversionGaUniversal($order)) {
-                    $this->log("Transaction tracked for Order '%s' with GA universal", $order->getIncrementId());
-                }
-            } else {
+            $this->log("Google analytics tracking not yet sent for order '{$order->getIncrementId()}'");
+
+            if (!$this->isGaUniversalTrackingActive()) {
                 $this->log('Google analytics universal tracking is disabled or not configured');
+                return;
             }
 
-            if ($universalResult) {
-                $this->setGaAlreadySent($order);
-                $this->log("Transaction tracked for Order '%s'", $order->getIncrementId());
-            } else {
-                $this->log("Could not track order %s", $order->getIncrementId());
+            $this->log("Before tracking transaction for order '{$order->getIncrementId()}'");
+            if (!$this->trackConversionGaUniversal($order)) {
+                $this->log("Could not track order '{$order->getIncrementId()}'", Zend_Log::ERR);
+                return;
             }
+
+            $this->log("Transaction tracked for order '{$order->getIncrementId()}' with GA universal");
+
+            $this->setGaAlreadySent($order);
+
+            $this->log("Transaction for order '{$order->getIncrementId()}' marked as already tracked");
+
         } catch (Exception $ex) {
-            //Un errore qui non deve influenzare il workflow dell'ordine. Quindi logghiamo e basta
-            $this->log("Exception while trying to track order %s", $order->getIncrementId());
-            $this->log($ex->getMessage());
-            $this->log($ex->getTraceAsString());
+            //Un errore qui non deve influenzare il workflow dell'ordine. Quindi logghiamo tutto e non rilanciamo
+            //l'eccezione
+            $this->log("Exception while trying to track order '{$order->getIncrementId()}'", Zend_Log::CRIT);
+            $this->log($ex->getMessage(), Zend_Log::CRIT);
+            $this->log($ex->getTraceAsString(), Zend_Log::CRIT);
         }
     }
 
@@ -74,6 +77,10 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             Mage::getStoreConfig('google/analytics/account');
     }
 
+    /**
+     * @param Mage_Sales_Model_Order $order
+     * @return bool
+     */
     protected function trackConversionGaUniversal(Mage_Sales_Model_Order $order)
     {
         $accountNumber = Mage::getStoreConfig('google/analytics/account');
@@ -82,7 +89,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
         $client = Krizon\Google\Analytics\MeasurementProtocol\MeasurementProtocolClient::factory($config);
         $cid = $this->getClientId($order);
         if (empty($cid)) {
-            $this->log("Could not track order %s: client id not available", $order->getIncrementId());
+            $this->log("Could not track order '{$order->getIncrementId()}': client id not available", Zend_Log::ERR);
             return false;
         }
 

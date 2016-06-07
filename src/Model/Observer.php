@@ -41,12 +41,12 @@ class Webgriffe_ServerGoogleAnalytics_Model_Observer
             if (!$this->helper->getClientId($order)) {
                 //Il primo utente che salva un ordine è il cliente che lo crea premendo il pulsante "place order" nel
                 //checkout. Quindi non si sovrascrive il client id se un ordine lo ha già.
-                $this->helper->log(sprintf('Saving client ID "%s" on order %s', $clientId, $order->getIncrementId()));
+                $this->helper->log("Saving client ID '{$clientId}' on order '{$order->getIncrementId()}'");
                 $this->helper->setClientId($order, $clientId);
                 $this->helper->log('Saving done');
             }
         } else {
-            $this->helper->log(sprintf('No client ID found for order %s', $order->getIncrementId()));
+            $this->helper->log("No client ID found for order '{$order->getIncrementId()}'");
         }
     }
 
@@ -67,7 +67,7 @@ class Webgriffe_ServerGoogleAnalytics_Model_Observer
         $order = $invoice->getOrder();
 
         //Il controllo di non aver già fatto il tracciamento per questo ordine viene fatto dentro a trackConversion()
-        $this->helper->log('Tracking conversion for order '.$order->getIncrementId());
+        $this->helper->log("Tracking conversion for order '{$order->getIncrementId()}'");
         $this->helper->trackConversion($order);
         $this->helper->log('Tracking done');
     }
