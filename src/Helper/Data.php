@@ -47,7 +47,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
                     $this->log("Transaction tracked for Order '%s' with GA universal", $order->getIncrementId());
                 }
             } else {
-                $this->log('Server side Google analytics tracking is disabled');
+                $this->log('Google analytics universal tracking is disabled or not configured');
             }
 
             if ($universalResult) {
