@@ -93,9 +93,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             return false;
         }
 
-        /** @var \Guzzle\Service\Command\CommandInterface[] $commands */
-        $commands = array();
-        $commands[] = $client->transaction(
+        $client->transaction(
             array(
                 'tid' => $accountNumber,                                // Tracking ID / Property ID.
                 'cid' => $cid,                                          // Anonymous Client ID.
@@ -112,7 +110,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
 
         /** @var Mage_Sales_Model_Order_Item $item */
         foreach ($order->getAllVisibleItems() as $item) {
-            $commands[] = $client->item(
+            $client->item(
                 array(
                     'tid' => $accountNumber,                        // Tracking ID / Property ID.
                     'cid' => $cid,                                  // Anonymous Client ID.
@@ -128,10 +126,6 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
                 )
             );
         }
-
-        $this->log('Ready to send data...');
-        $client->execute($commands);
-        $this->log('All sent');
 
         return true;
     }
