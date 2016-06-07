@@ -181,7 +181,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
         return false;
     }
 
-    public function log($message, $level = null, $forceLog = false)
+    public function log($message, $level = Zend_Log::DEBUG, $forceLog = false)
     {
         Mage::log($message, $level, self::LOG_FILENAME, $forceLog);
     }
