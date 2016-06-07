@@ -1,2 +1,3 @@
-src/                                    app/code/community/Webgriffe/ServerGoogleAnalytics/
-Webgriffe_ServerGoogleAnalytics.xml     app/etc/modules/Webgriffe_ServerGoogleAnalytics.xml
+src/                                                app/code/community/Webgriffe/ServerGoogleAnalytics/
+Webgriffe_ServerGoogleAnalytics.xml                 app/etc/modules/Webgriffe_ServerGoogleAnalytics.xml
+locale/it_IT/Webgriffe_ServerGoogleAnalytics.csv    app/locale/it_IT/Webgriffe_ServerGoogleAnalytics.csv

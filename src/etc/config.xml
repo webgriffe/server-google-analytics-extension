@@ -52,4 +52,16 @@
             </sales_order_invoice_pay>
         </events>
     </global>
+
+    <adminhtml>
+        <translate>
+            <modules>
+                <Webgriffe_ServerGoogleAnalytics>
+                    <files>
+                        <default>Webgriffe_ServerGoogleAnalytics.csv</default>
+                    </files>
+                </Webgriffe_ServerGoogleAnalytics>
+            </modules>
+        </translate>
+    </adminhtml>
 </config>
