@@ -16,6 +16,10 @@ class Webgriffe_ServerGoogleAnalytics_Block_GoogleAnalytics_Ga extends Mage_Goog
      */
     protected function _getOrdersTrackingCode()
     {
+        if (!Mage::helper('webgriffe_servergoogleanalytics')->isEnabled()) {
+            return parent::_getOrdersTrackingCode();
+        }
+
         return '';
     }
 }
