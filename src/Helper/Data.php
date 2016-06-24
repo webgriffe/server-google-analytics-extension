@@ -93,7 +93,8 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             return false;
         }
 
-        $client->transaction(
+        /** @var \Guzzle\Http\Message\Response $response */
+        $response = $client->transaction(
             array(
                 'tid' => $accountNumber,                                // Tracking ID / Property ID.
                 'cid' => $cid,                                          // Anonymous Client ID.
@@ -109,9 +110,11 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             )
         );
 
+        $this->log('Transaction response: '.$response->getBody(true));
+
         /** @var Mage_Sales_Model_Order_Item $item */
         foreach ($order->getAllVisibleItems() as $item) {
-            $client->item(
+            $response = $client->item(
                 array(
                     'tid' => $accountNumber,                        // Tracking ID / Property ID.
                     'cid' => $cid,                                  // Anonymous Client ID.
@@ -126,6 +129,8 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
                     'iv' => $this->getCategory($item),              // Item variation / category.
                 )
             );
+
+            $this->log("Item {$item->getId()} response: ".$response->getBody(true));
         }
 
         return true;
