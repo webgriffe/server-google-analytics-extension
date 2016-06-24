@@ -99,6 +99,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
                 'cid' => $cid,                                          // Anonymous Client ID.
                 'aip' => (int)Mage::getStoreConfigFlag('google/analytics/anonymization'),
 
+                'dh' => Mage::getStoreConfig('web/unsecure/base_url'),
                 'ti' => $order->getIncrementId(),                       // transaction ID. Required.
                 'ta' => Mage::app()->getStore()->getName(),             // Transaction affiliation.
                 'tr' => $order->getBaseGrandTotal(),                    // Transaction revenue.
