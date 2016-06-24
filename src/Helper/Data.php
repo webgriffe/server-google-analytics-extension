@@ -93,43 +93,47 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             return false;
         }
 
-        /** @var \Guzzle\Http\Message\Response $response */
-        $response = $client->transaction(
-            array(
-                'tid' => $accountNumber,                                // Tracking ID / Property ID.
-                'cid' => $cid,                                          // Anonymous Client ID.
-                'aip' => (int)Mage::getStoreConfigFlag('google/analytics/anonymization'),
+        $params = array(
+            'tid' => $accountNumber,                                // Tracking ID / Property ID.
+            'cid' => $cid,                                          // Anonymous Client ID.
+            'aip' => (int)Mage::getStoreConfigFlag('google/analytics/anonymization'),
 
-                't'  => 'transaction',
-                'dh' => Mage::getStoreConfig(Mage_Core_Model_Store::XML_PATH_UNSECURE_BASE_URL),
-                'ti' => $order->getIncrementId(),                       // transaction ID. Required.
-                'ta' => Mage::app()->getStore()->getName(),             // Transaction affiliation.
-                'tr' => $order->getBaseGrandTotal(),                    // Transaction revenue.
-                'ts' => $order->getBaseShippingAmount(),                // Transaction shipping.
-                'tt' => $order->getBaseTaxAmount(),                     // Transaction tax.
-                'cu' => $order->getBaseCurrencyCode(),                  // Currency code.
-            )
+            't'  => 'transaction',
+            'dh' => Mage::getStoreConfig(Mage_Core_Model_Store::XML_PATH_UNSECURE_BASE_URL),
+            'ti' => $order->getIncrementId(),                       // transaction ID. Required.
+            'ta' => Mage::app()->getStore()->getName(),             // Transaction affiliation.
+            'tr' => $order->getBaseGrandTotal(),                    // Transaction revenue.
+            'ts' => $order->getBaseShippingAmount(),                // Transaction shipping.
+            'tt' => $order->getBaseTaxAmount(),                     // Transaction tax.
+            'cu' => $order->getBaseCurrencyCode(),                  // Currency code.
         );
+
+        $this->log('Transaction params: '.print_r($params, true));
+
+        /** @var \Guzzle\Http\Message\Response $response */
+        $response = $client->transaction($params);
 
         $this->log('Transaction response: '.$response->getBody(true));
 
         /** @var Mage_Sales_Model_Order_Item $item */
         foreach ($order->getAllVisibleItems() as $item) {
-            $response = $client->item(
-                array(
-                    'tid' => $accountNumber,                        // Tracking ID / Property ID.
-                    'cid' => $cid,                                  // Anonymous Client ID.
-                    'aip' => (int)Mage::getStoreConfigFlag('google/analytics/anonymization'),
+            $params = array(
+                'tid' => $accountNumber,                        // Tracking ID / Property ID.
+                'cid' => $cid,                                  // Anonymous Client ID.
+                'aip' => (int)Mage::getStoreConfigFlag('google/analytics/anonymization'),
 
-                    'ti' => $order->getIncrementId(),               // transaction ID. Required.
-                    'in' => $item->getName(),                       // Item name. Required.
-                    'ip' => $item->getBasePrice(),                  // Item price.
-                    'iq' => $item->getQtyOrdered(),                 // Item quantity.
-                    'ic' => $item->getSku(),                        // Item code / SKU.
-                    'cu' => $order->getBaseCurrencyCode(),          // Currency code.
-                    'iv' => $this->getCategory($item),              // Item variation / category.
-                )
+                'ti' => $order->getIncrementId(),               // transaction ID. Required.
+                'in' => $item->getName(),                       // Item name. Required.
+                'ip' => $item->getBasePrice(),                  // Item price.
+                'iq' => $item->getQtyOrdered(),                 // Item quantity.
+                'ic' => $item->getSku(),                        // Item code / SKU.
+                'cu' => $order->getBaseCurrencyCode(),          // Currency code.
+                'iv' => $this->getCategory($item),              // Item variation / category.
             );
+
+            $this->log("Item {$item->getId()} params: ".print_r($params, true));
+
+            $response = $client->item($params);
 
             $this->log("Item {$item->getId()} response: ".$response->getBody(true));
         }
