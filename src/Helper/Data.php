@@ -93,13 +93,14 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             return false;
         }
 
+        //Remove "GA1.2." from the beginning of the cookie content
+        $cid = preg_replace('/^GA1\.2\./', '', $cid);
+
         $params = array(
             'tid' => $accountNumber,                                // Tracking ID / Property ID.
             'cid' => $cid,                                          // Anonymous Client ID.
             'aip' => (int)Mage::getStoreConfigFlag('google/analytics/anonymization'),
 
-            't'  => 'transaction',
-            'dh' => Mage::getStoreConfig(Mage_Core_Model_Store::XML_PATH_UNSECURE_BASE_URL),
             'ti' => $order->getIncrementId(),                       // transaction ID. Required.
             'ta' => Mage::app()->getStore()->getName(),             // Transaction affiliation.
             'tr' => $order->getBaseGrandTotal(),                    // Transaction revenue.
