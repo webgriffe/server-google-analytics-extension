@@ -34,6 +34,12 @@ class Webgriffe_ServerGoogleAnalytics_Model_Observer
             return;
         }
 
+        if (Mage::app()->getStore()->isAdmin()) {
+            //Se si salva un ordine da admin non bisogna salvare il valore del cookie, dato che si tratta del cookie
+            //dell'admin
+            return;
+        }
+
         /** @var Mage_Sales_Model_Order $order */
         $order = $observer->getData('order');
         $clientId = Mage::app()->getRequest()->getCookie(self::GA_COOKIE_NAME, null);
