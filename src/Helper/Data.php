@@ -15,6 +15,9 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
     const GA_ALREADY_SENT_ADDITIONAL_INFORMATION_KEY    = 'ga_already_sent';
     const GA_CLIENT_ID_ADDITIONAL_INFORMATION_KEY       = 'ga_client_id';
 
+    //Older versions of Magento do not have this constant in Mage_GoogleAnalytics_Helper_Data
+    const TYPE_UNIVERSAL = 'universal';
+
     /**
      * @return bool
      */
@@ -68,22 +71,12 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
     }
 
     /**
-     * @return bool
-     */
-    protected function isGaUniversalTrackingActive()
-    {
-        return Mage::getStoreConfigFlag('google/analytics/active') &&
-            Mage::getStoreConfig('google/analytics/type') == Mage_GoogleAnalytics_Helper_Data::TYPE_UNIVERSAL &&
-            Mage::getStoreConfig('google/analytics/account');
-    }
-
-    /**
      * @param Mage_Sales_Model_Order $order
      * @return bool
      */
     protected function trackConversionGaUniversal(Mage_Sales_Model_Order $order)
     {
-        $accountNumber = Mage::getStoreConfig('google/analytics/account');
+        $accountNumber = $this->getGaAccountNumber();
 
         $config = array();
         $client = Krizon\Google\Analytics\MeasurementProtocol\MeasurementProtocolClient::factory($config);
@@ -99,7 +92,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
         $params = array(
             'tid' => $accountNumber,                                // Tracking ID / Property ID.
             'cid' => $cid,                                          // Anonymous Client ID.
-            'aip' => (int)Mage::getStoreConfigFlag('google/analytics/anonymization'),
+            'aip' => (int)$this->isAnonymizationActive(),
 
             'ti' => $order->getIncrementId(),                       // transaction ID. Required.
             'ta' => Mage::app()->getStore()->getName(),             // Transaction affiliation.
@@ -121,7 +114,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             $params = array(
                 'tid' => $accountNumber,                        // Tracking ID / Property ID.
                 'cid' => $cid,                                  // Anonymous Client ID.
-                'aip' => (int)Mage::getStoreConfigFlag('google/analytics/anonymization'),
+                'aip' => (int)$this->isAnonymizationActive(),
 
                 'ti' => $order->getIncrementId(),               // transaction ID. Required.
                 'in' => $item->getName(),                       // Item name. Required.
@@ -203,5 +196,56 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
     public function log($message, $level = Zend_Log::DEBUG, $forceLog = false)
     {
         Mage::log($message, $level, self::LOG_FILENAME, $forceLog);
+    }
+
+    /**
+     * @return string
+     */
+    protected function getGaAccountNumber()
+    {
+        if ($this->isNativeGaUniversalActive()) {
+            return Mage::getStoreConfig('google/analytics/account');
+        } elseif ($this->isFoomanGaUniversalActive()) {
+            return Mage::getStoreConfig('google/analyticsplus_universal/accountnumber');
+        }
+    }
+
+    /**
+     * @return bool
+     */
+    protected function isAnonymizationActive()
+    {
+        if ($this->isNativeGaUniversalActive()) {
+            return Mage::getStoreConfigFlag('google/analytics/anonymization');
+        } elseif ($this->isFoomanGaUniversalActive()) {
+            return Mage::getStoreConfigFlag('google/analyticsplus_universal/anonymise');
+        }
+    }
+
+    /**
+     * @return bool
+     */
+    protected function isGaUniversalTrackingActive()
+    {
+        return $this->isNativeGaUniversalActive() || $this->isFoomanGaUniversalActive();
+    }
+
+    /**
+     * @return bool
+     */
+    protected function isNativeGaUniversalActive()
+    {
+        return Mage::getStoreConfigFlag('google/analytics/active') &&
+            Mage::getStoreConfig('google/analytics/type') == self::TYPE_UNIVERSAL &&
+            Mage::getStoreConfig('google/analytics/account');
+    }
+
+    /**
+     * @return bool
+     */
+    protected function isFoomanGaUniversalActive()
+    {
+        return Mage::getStoreConfigFlag('google/analyticsplus_universal/enabled') &&
+            Mage::getStoreConfig('google/analyticsplus_universal/accountnumber');
     }
 }
