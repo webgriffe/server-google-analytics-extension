@@ -95,7 +95,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             'aip' => (int)$this->isAnonymizationActive(),
 
             'ti' => $order->getIncrementId(),                       // transaction ID. Required.
-            'ta' => Mage::app()->getStore()->getName(),             // Transaction affiliation.
+            'ta' => $order->getStore()->getName(),             // Transaction affiliation.
             'tr' => $order->getBaseGrandTotal(),                    // Transaction revenue.
             'ts' => $order->getBaseShippingAmount(),                // Transaction shipping.
             'tt' => $order->getBaseTaxAmount(),                     // Transaction tax.
