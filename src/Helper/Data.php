@@ -179,7 +179,10 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
     {
         //Dispatch an event so that it is possible to change which category is used here
         $data = new Varien_Object(array('item' => $item, 'category_name' => null));
-        Mage::dispatchEvent('get_order_item_product_category', array('data' => $data));
+        Mage::dispatchEvent(
+            'google_analytics_transaction_tracking_order_item_product_category',
+            array('data' => $data)
+        );
         $categoryName = $data->getData('category_name');
         if ($categoryName) {
             return $categoryName;
