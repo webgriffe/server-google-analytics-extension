@@ -23,8 +23,8 @@ class Webgriffe_ServerGoogleAnalytics_Model_Observer
     /**
      * Event: sales_order_save_after
      *
-     * Si salva un dato nel payment, che ha una chiave esterna verso l'order. Quindi bisogna farlo sul save after
-     * dell'ordine, cioè quando esiste sul DB un ordine da referenziare
+     * Here some data is saved in the order payment object, which contains a foreign key toward the order. So it must be
+     * done on the order save after event, that is when there is an order in the database that can be referenced.
      *
      * @param Varien_Event_Observer $observer
      */
@@ -35,8 +35,8 @@ class Webgriffe_ServerGoogleAnalytics_Model_Observer
         }
 
         if (Mage::app()->getStore()->isAdmin()) {
-            //Se si salva un ordine da admin non bisogna salvare il valore del cookie, dato che si tratta del cookie
-            //dell'admin
+            //When saving an order in the admin do nothing. Otherwise the transaction could be tracked for the admin
+            //user
             return;
         }
 
@@ -44,9 +44,10 @@ class Webgriffe_ServerGoogleAnalytics_Model_Observer
         $order = $observer->getData('order');
         $clientId = Mage::app()->getRequest()->getCookie(self::GA_COOKIE_NAME, null);
         if ($clientId) {
+            //The first user who saves an order is the customer who submits it by clicking the "place order" button
+            //in the checkout page. So only set this value the first time and never overwrite it if it is already
+            //there.
             if (!$this->helper->getClientId($order)) {
-                //Il primo utente che salva un ordine è il cliente che lo crea premendo il pulsante "place order" nel
-                //checkout. Quindi non si sovrascrive il client id se un ordine lo ha già.
                 $this->helper->log("Saving client ID '{$clientId}' on order '{$order->getIncrementId()}'");
                 $this->helper->setClientId($order, $clientId);
                 $this->helper->log('Saving done');
@@ -63,16 +64,16 @@ class Webgriffe_ServerGoogleAnalytics_Model_Observer
      */
     public function onInvoicePaid(Varien_Event_Observer $observer)
     {
-        if (!$this->helper->isEnabled()) {
-            return;
-        }
-
         /** @var Mage_Sales_Model_Order_Invoice $invoice */
         $invoice = $observer->getData('invoice');
 
+        if (!$this->helper->isEnabled($invoice->getStoreId())) {
+            return;
+        }
+
         $order = $invoice->getOrder();
 
-        //Il controllo di non aver già fatto il tracciamento per questo ordine viene fatto dentro a trackConversion()
+        //The check to make sure not to track the same order twice is done inside the trackConversion() call
         $this->helper->log("Tracking conversion for order '{$order->getIncrementId()}'");
         $this->helper->trackConversion($order);
         $this->helper->log('Tracking done');

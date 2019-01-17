@@ -21,9 +21,9 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
     /**
      * @return bool
      */
-    public function isEnabled()
+    public function isEnabled($storeId = null)
     {
-        return Mage::getStoreConfigFlag(self::XML_PATH_SERVERGOOGLEANALYTICS_ENABLED);
+        return Mage::getStoreConfigFlag(self::XML_PATH_SERVERGOOGLEANALYTICS_ENABLED, $storeId);
     }
 
     /**
@@ -31,7 +31,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
      */
     public function trackConversion(Mage_Sales_Model_Order $order)
     {
-        if (!$this->isEnabled()) {
+        if (!$this->isEnabled($order->getStoreId())) {
             return;
         }
 
@@ -44,7 +44,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
 
             $this->log("Google analytics tracking not yet sent for order '{$order->getIncrementId()}'");
 
-            if (!$this->isGaUniversalTrackingActive()) {
+            if (!$this->isGaUniversalTrackingActive($order->getStoreId())) {
                 $this->log('Google analytics universal tracking is disabled or not configured');
                 return;
             }
@@ -62,8 +62,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             $this->log("Transaction for order '{$order->getIncrementId()}' marked as already tracked");
 
         } catch (Exception $ex) {
-            //Un errore qui non deve influenzare il workflow dell'ordine. Quindi logghiamo tutto e non rilanciamo
-            //l'eccezione
+            //An error here must not affect the order workflow. So log everything but do not rethrow the exception
             $this->log("Exception while trying to track order '{$order->getIncrementId()}'", Zend_Log::CRIT);
             $this->log($ex->getMessage(), Zend_Log::CRIT);
             $this->log($ex->getTraceAsString(), Zend_Log::CRIT);
@@ -72,11 +71,12 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
 
     /**
      * @param Mage_Sales_Model_Order $order
+     *
      * @return bool
      */
     protected function trackConversionGaUniversal(Mage_Sales_Model_Order $order)
     {
-        $accountNumber = $this->getGaAccountNumber();
+        $accountNumber = $this->getGaAccountNumber($order->getStoreId());
 
         $config = array();
         $client = Krizon\Google\Analytics\MeasurementProtocol\MeasurementProtocolClient::factory($config);
@@ -90,16 +90,16 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
         $cid = preg_replace('/^GA1\.2\./', '', $cid);
 
         $params = array(
-            'tid' => $accountNumber,                                // Tracking ID / Property ID.
-            'cid' => $cid,                                          // Anonymous Client ID.
-            'aip' => (int)$this->isAnonymizationActive(),
+            'tid' => $accountNumber,                            // Tracking ID / Property ID.
+            'cid' => $cid,                                      // Anonymous Client ID.
+            'aip' => (int)$this->isAnonymizationActive($order->getStoreId()),
 
-            'ti' => $order->getIncrementId(),                       // transaction ID. Required.
-            'ta' => $order->getStore()->getName(),             // Transaction affiliation.
-            'tr' => $order->getBaseGrandTotal(),                    // Transaction revenue.
-            'ts' => $order->getBaseShippingAmount(),                // Transaction shipping.
-            'tt' => $order->getBaseTaxAmount(),                     // Transaction tax.
-            'cu' => $order->getBaseCurrencyCode(),                  // Currency code.
+            'ti' => $order->getIncrementId(),                   // transaction ID. Required.
+            'ta' => $order->getStore()->getName(),              // Transaction affiliation.
+            'tr' => $order->getBaseGrandTotal(),                // Transaction revenue.
+            'ts' => $order->getBaseShippingAmount(),            // Transaction shipping.
+            'tt' => $order->getBaseTaxAmount(),                 // Transaction tax.
+            'cu' => $order->getBaseCurrencyCode(),              // Currency code.
         );
 
         $this->log('Transaction params: '.print_r($params, true));
@@ -114,7 +114,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             $params = array(
                 'tid' => $accountNumber,                        // Tracking ID / Property ID.
                 'cid' => $cid,                                  // Anonymous Client ID.
-                'aip' => (int)$this->isAnonymizationActive(),
+                'aip' => (int)$this->isAnonymizationActive($order->getStoreId()),
 
                 'ti' => $order->getIncrementId(),               // transaction ID. Required.
                 'in' => $item->getName(),                       // Item name. Required.
@@ -177,6 +177,14 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
 
     protected function getCategory(Mage_Sales_Model_Order_Item $item)
     {
+        //Dispatch an event so that it is possible to change which category is used here
+        $data = new Varien_Object(array('item' => $item, 'category_name' => null));
+        Mage::dispatchEvent('get_order_item_product_category', array('data' => $data));
+        $categoryName = $data->getData('category_name');
+        if ($categoryName) {
+            return $categoryName;
+        }
+
         $product = Mage::getModel('catalog/product')->load($item->getProductId());
         if (!$product) {
             return null;
@@ -193,59 +201,59 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
         return false;
     }
 
-    public function log($message, $level = Zend_Log::DEBUG, $forceLog = false)
-    {
-        Mage::log($message, $level, self::LOG_FILENAME, $forceLog);
-    }
-
     /**
      * @return string
      */
-    protected function getGaAccountNumber()
+    protected function getGaAccountNumber($storeId)
     {
-        if ($this->isNativeGaUniversalActive()) {
-            return Mage::getStoreConfig('google/analytics/account');
-        } elseif ($this->isFoomanGaUniversalActive()) {
-            return Mage::getStoreConfig('google/analyticsplus_universal/accountnumber');
+        if ($this->isNativeGaUniversalActive($storeId)) {
+            return Mage::getStoreConfig('google/analytics/account', $storeId);
+        } elseif ($this->isFoomanGaUniversalActive($storeId)) {
+            return Mage::getStoreConfig('google/analyticsplus_universal/accountnumber', $storeId);
         }
     }
 
     /**
      * @return bool
      */
-    protected function isAnonymizationActive()
+    protected function isAnonymizationActive($storeId)
     {
-        if ($this->isNativeGaUniversalActive()) {
-            return Mage::getStoreConfigFlag('google/analytics/anonymization');
-        } elseif ($this->isFoomanGaUniversalActive()) {
-            return Mage::getStoreConfigFlag('google/analyticsplus_universal/anonymise');
+        if ($this->isNativeGaUniversalActive($storeId)) {
+            return Mage::getStoreConfigFlag('google/analytics/anonymization', $storeId);
+        } elseif ($this->isFoomanGaUniversalActive($storeId)) {
+            return Mage::getStoreConfigFlag('google/analyticsplus_universal/anonymise', $storeId);
         }
     }
 
     /**
      * @return bool
      */
-    protected function isGaUniversalTrackingActive()
+    protected function isGaUniversalTrackingActive($storeId)
     {
-        return $this->isNativeGaUniversalActive() || $this->isFoomanGaUniversalActive();
+        return $this->isNativeGaUniversalActive($storeId) || $this->isFoomanGaUniversalActive($storeId);
     }
 
     /**
      * @return bool
      */
-    protected function isNativeGaUniversalActive()
+    protected function isNativeGaUniversalActive($storeId)
     {
-        return Mage::getStoreConfigFlag('google/analytics/active') &&
-            Mage::getStoreConfig('google/analytics/type') == self::TYPE_UNIVERSAL &&
-            Mage::getStoreConfig('google/analytics/account');
+        return Mage::getStoreConfigFlag('google/analytics/active', $storeId) &&
+            Mage::getStoreConfig('google/analytics/type', $storeId) == self::TYPE_UNIVERSAL &&
+            Mage::getStoreConfig('google/analytics/account', $storeId);
     }
 
     /**
      * @return bool
      */
-    protected function isFoomanGaUniversalActive()
+    protected function isFoomanGaUniversalActive($storeId)
     {
-        return Mage::getStoreConfigFlag('google/analyticsplus_universal/enabled') &&
-            Mage::getStoreConfig('google/analyticsplus_universal/accountnumber');
+        return Mage::getStoreConfigFlag('google/analyticsplus_universal/enabled', $storeId) &&
+            Mage::getStoreConfig('google/analyticsplus_universal/accountnumber', $storeId);
+    }
+
+    public function log($message, $level = Zend_Log::DEBUG, $forceLog = false)
+    {
+        Mage::log($message, $level, self::LOG_FILENAME, $forceLog);
     }
 }
