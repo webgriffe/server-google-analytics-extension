@@ -2,7 +2,7 @@
   "name": "webgriffe/server-google-analytics-extension",
   "type": "magento-module",
   "description": "Server side Google analytics universal tracking for Magento.",
-  "license": "Commercial",
+  "license": "MIT",
   "authors": [
     {
       "name": "Webgriffe®",
