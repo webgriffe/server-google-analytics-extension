@@ -137,6 +137,74 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
 
     /**
      * @param Mage_Sales_Model_Order $order
+     *
+     * @return bool
+     */
+    protected function trackConversionEnhancedEcommerce(Mage_Sales_Model_Order $order)
+    {
+        $accountNumber = $this->getGaAccountNumber($order->getStoreId());
+
+        $cid = $this->getClientId($order);
+        if (empty($cid)) {
+            $this->log("Could not track order '{$order->getIncrementId()}': client id not available", Zend_Log::ERR);
+            return false;
+        }
+
+        //Remove "GA1.2." from the beginning of the cookie content
+        $cid = preg_replace('/^GA1\.2\./', '', $cid);
+
+        $baseUrl = Mage::getStoreConfig('web/secure/base_url', $order->getStoreId());
+        $params = array(
+            'v'     => 1,                                   // Version.
+            'tid'   => $accountNumber,                      // Tracking ID / Property ID.
+            'cid'   => $cid,                                // Anonymous Client ID.
+            't'     => 'pageview',                          // Pageview hit type.
+            'dl'    => $baseUrl,                            // Document hostname.
+
+            'ti'    => $order->getIncrementId(),            // Transaction ID. Required.
+            'ta'    => $order->getStore()->getName(),       // Affiliation.
+            'tr'    => $order->getBaseGrandTotal(),         // Revenue.
+            'tt'    => $order->getBaseTaxAmount(),          // Tax.
+            'ts'    => $order->getBaseShippingAmount(),     // Shipping.
+
+            'pa'    => 'purchase',                          // Product action (purchase). Required.
+        );
+
+        $index = 1;
+        /** @var Mage_Sales_Model_Order_Item $item */
+        foreach ($order->getAllVisibleItems() as $item) {
+            $params = array_merge(
+                $params,
+                array(
+                    "pr{$index}id" => $item->getSku(),              // Product ID. Either ID or name must be set.
+                    "pr{$index}nm" => $item->getName(),             // Product name. Either ID or name must be set.
+                    "pr{$index}ca" => $this->getCategory($item),    // Product category.
+                    "pr{$index}pr" => $item->getBasePrice(),        // Product price
+                    "pr{$index}qt" => $item->getQtyOrdered(),       // Product quantity
+                )
+            );
+            ++$index;
+        }
+
+        $this->log('Transaction params: '.print_r($params, true));
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, 'https://www.google-analytics.com/collect');
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-type: application/x-www-form-urlencoded'));
+        curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, utf8_encode(http_build_query($params)));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        $this->log('Transaction response: '.$response->getBody(true));
+
+        return true;
+    }
+
+    /**
+     * @param Mage_Sales_Model_Order $order
      * @return bool
      */
     public function checkGaAlreadySent(Mage_Sales_Model_Order $order)
