@@ -11,6 +11,8 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
     const LOG_FILENAME                                  = 'Webgriffe_ServerGoogleAnalytics.log';
 
     const XML_PATH_SERVERGOOGLEANALYTICS_ENABLED        = 'google/servergoogleanalytics/enabled';
+    const XML_PATH_SERVERGOOGLEANALYTICS_ACCOUNT        = 'google/servergoogleanalytics/account';
+    const XML_PATH_SERVERGOOGLEANALYTICS_METHOD         = 'google/servergoogleanalytics/method';
 
     const GA_ALREADY_SENT_ADDITIONAL_INFORMATION_KEY    = 'ga_already_sent';
     const GA_CLIENT_ID_ADDITIONAL_INFORMATION_KEY       = 'ga_client_id';
@@ -19,6 +21,9 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
     const TYPE_UNIVERSAL = 'universal';
 
     /**
+     * Checks whether the module config is set to allow server side tracking. Does not actually check to make sure that
+     * the tracking invormation (account number) is set
+     *
      * @return bool
      */
     public function isEnabled($storeId = null)
@@ -44,15 +49,24 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
 
             $this->log("Google analytics tracking not yet sent for order '{$order->getIncrementId()}'");
 
-            if (!$this->isGaUniversalTrackingActive($order->getStoreId())) {
-                $this->log('Google analytics universal tracking is disabled or not configured');
+            if (!$this->canTrack($order->getStoreId())) {
+                $this->log('Server side Google analytics tracking is disabled or not configured');
                 return;
             }
 
             $this->log("Before tracking transaction for order '{$order->getIncrementId()}'");
-            if (!$this->trackConversionGaUniversal($order)) {
-                $this->log("Could not track order '{$order->getIncrementId()}'", Zend_Log::ERR);
-                return;
+            if ($this->getMethod($order->getStoreId()) == Webgriffe_ServerGoogleAnalytics_System_Config_Source_Method::ENHANCED_ECOMMERCE_METHOD) {
+                $this->log("Tracking with enhanced ecommerce");
+                if (!$this->trackConversionEnhancedEcommerce($order)) {
+                    $this->log("Could not track order '{$order->getIncrementId()}'", Zend_Log::ERR);
+                    return;
+                }
+            } else {
+                $this->log("Tracking with ecommerce");
+                if (!$this->trackConversionEcommerce($order)) {
+                    $this->log("Could not track order '{$order->getIncrementId()}'", Zend_Log::ERR);
+                    return;
+                }
             }
 
             $this->log("Transaction tracked for order '{$order->getIncrementId()}' with GA universal");
@@ -73,8 +87,15 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
      * @param Mage_Sales_Model_Order $order
      *
      * @return bool
+     *
+     * @deprecated Use trackConversionEcommerce() instead
      */
     protected function trackConversionGaUniversal(Mage_Sales_Model_Order $order)
+    {
+        return $this->trackConversionEcommerce($order);
+    }
+
+    protected function trackConversionEcommerce(Mage_Sales_Model_Order $order)
     {
         $accountNumber = $this->getGaAccountNumber($order->getStoreId());
 
@@ -277,10 +298,12 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
      */
     protected function getGaAccountNumber($storeId)
     {
-        if ($this->isNativeGaUniversalActive($storeId)) {
-            return Mage::getStoreConfig('google/analytics/account', $storeId);
+        if ($this->isGaAccountOverrideActive($storeId)) {
+            return $this->getGaAccountOverride($storeId);
+        } elseif ($this->isNativeGaUniversalActive($storeId)) {
+            return $this->getGaUniversalAccount($storeId);
         } elseif ($this->isFoomanGaUniversalActive($storeId)) {
-            return Mage::getStoreConfig('google/analyticsplus_universal/accountnumber', $storeId);
+            return $this->getFoomanGaUniversalAccount($storeId);
         }
     }
 
@@ -289,7 +312,9 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
      */
     protected function isAnonymizationActive($storeId)
     {
-        if ($this->isNativeGaUniversalActive($storeId)) {
+        if ($this->isGaAccountOverrideActive($storeId)) {
+            return true;    //???
+        } elseif ($this->isNativeGaUniversalActive($storeId)) {
             return Mage::getStoreConfigFlag('google/analytics/anonymization', $storeId);
         } elseif ($this->isFoomanGaUniversalActive($storeId)) {
             return Mage::getStoreConfigFlag('google/analyticsplus_universal/anonymise', $storeId);
@@ -297,7 +322,19 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
     }
 
     /**
+     * @param $storeId
      * @return bool
+     */
+    protected function isGaAccountOverrideActive($storeId)
+    {
+        return strlen($this->getGaAccountOverride($storeId)) > 0;
+    }
+
+    /**
+     * @param $storeId
+     * @return bool
+     *
+     * @deprecated use canTrack() instead
      */
     protected function isGaUniversalTrackingActive($storeId)
     {
@@ -305,22 +342,74 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
     }
 
     /**
+     * @param $storeId
+     * @return bool
+     */
+    protected function canTrack($storeId)
+    {
+        return $this->isEnabled($storeId) &&
+            ($this->isGaAccountOverrideActive($storeId) ||
+            $this->isNativeGaUniversalActive($storeId) ||
+            $this->isFoomanGaUniversalActive($storeId));
+    }
+
+    /**
+     * @param $storeId
      * @return bool
      */
     protected function isNativeGaUniversalActive($storeId)
     {
         return Mage::getStoreConfigFlag('google/analytics/active', $storeId) &&
             Mage::getStoreConfig('google/analytics/type', $storeId) == self::TYPE_UNIVERSAL &&
-            Mage::getStoreConfig('google/analytics/account', $storeId);
+            $this->getGaUniversalAccount($storeId);
     }
 
     /**
+     * @param $storeId
      * @return bool
      */
     protected function isFoomanGaUniversalActive($storeId)
     {
         return Mage::getStoreConfigFlag('google/analyticsplus_universal/enabled', $storeId) &&
-            Mage::getStoreConfig('google/analyticsplus_universal/accountnumber', $storeId);
+            $this->getFoomanGaUniversalAccount($storeId);
+    }
+
+    /**
+     * @param $storeId
+     * @return string
+     */
+    protected function getGaAccountOverride($storeId)
+    {
+        return trim(
+            (string)Mage::getStoreConfig(self::XML_PATH_SERVERGOOGLEANALYTICS_ACCOUNT, $storeId)
+        );
+    }
+
+    /**
+     * @param $storeId
+     * @return string
+     */
+    protected function getGaUniversalAccount($storeId)
+    {
+        return trim((string)Mage::getStoreConfig('google/analytics/account', $storeId));
+    }
+
+    /**
+     * @param $storeId
+     * @return string
+     */
+    protected function getFoomanGaUniversalAccount($storeId)
+    {
+        return trim((string)Mage::getStoreConfig('google/analyticsplus_universal/accountnumber', $storeId));
+    }
+
+    /**
+     * @param $storeId
+     * @return mixed
+     */
+    protected function getMethod($storeId)
+    {
+        return Mage::getStoreConfig(self::XML_PATH_SERVERGOOGLEANALYTICS_METHOD, $storeId);
     }
 
     public function log($message, $level = Zend_Log::DEBUG, $forceLog = false)
