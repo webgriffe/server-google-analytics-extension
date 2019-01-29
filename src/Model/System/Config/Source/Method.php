@@ -6,7 +6,7 @@
  * Time: 18.01
  */
 
-class Webgriffe_ServerGoogleAnalytics_System_Config_Source_Method
+class Webgriffe_ServerGoogleAnalytics_Model_System_Config_Source_Method
 {
     const ENHANCED_ECOMMERCE_METHOD = 0;
     const ECOMMERCE_METHOD = 1;
