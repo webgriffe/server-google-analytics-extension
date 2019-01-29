@@ -54,19 +54,21 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
                 return;
             }
 
+            $isEecTrackingEnabled = $this->getMethod($order->getStoreId()) ==
+                Webgriffe_ServerGoogleAnalytics_System_Config_Source_Method::ENHANCED_ECOMMERCE_METHOD;
+
             $this->log("Before tracking transaction for order '{$order->getIncrementId()}'");
-            if ($this->getMethod($order->getStoreId()) == Webgriffe_ServerGoogleAnalytics_System_Config_Source_Method::ENHANCED_ECOMMERCE_METHOD) {
+            if ($isEecTrackingEnabled) {
                 $this->log("Tracking with enhanced ecommerce");
-                if (!$this->trackConversionEnhancedEcommerce($order)) {
-                    $this->log("Could not track order '{$order->getIncrementId()}'", Zend_Log::ERR);
-                    return;
-                }
+                $result = $this->trackConversionEnhancedEcommerce($order);
             } else {
                 $this->log("Tracking with ecommerce");
-                if (!$this->trackConversionEcommerce($order)) {
-                    $this->log("Could not track order '{$order->getIncrementId()}'", Zend_Log::ERR);
-                    return;
-                }
+                $result = $this->trackConversionEcommerce($order);
+            }
+
+            if (!$result) {
+                $this->log("Could not track order '{$order->getIncrementId()}'", Zend_Log::CRIT);
+                return;
             }
 
             $this->log("Transaction tracked for order '{$order->getIncrementId()}' with GA universal");
@@ -103,7 +105,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
         $client = Krizon\Google\Analytics\MeasurementProtocol\MeasurementProtocolClient::factory($config);
         $cid = $this->getClientId($order);
         if (empty($cid)) {
-            $this->log("Could not track order '{$order->getIncrementId()}': client id not available", Zend_Log::ERR);
+            $this->log("Could not track order '{$order->getIncrementId()}': client id not available", Zend_Log::CRIT);
             return false;
         }
 
@@ -166,7 +168,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
 
         $cid = $this->getClientId($order);
         if (empty($cid)) {
-            $this->log("Could not track order '{$order->getIncrementId()}': client id not available", Zend_Log::ERR);
+            $this->log("Could not track order '{$order->getIncrementId()}': client id not available", Zend_Log::CRIT);
             return false;
         }
 
