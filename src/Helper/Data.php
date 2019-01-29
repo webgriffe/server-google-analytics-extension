@@ -8,11 +8,14 @@
 
 class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstract
 {
+    const GOOGLE_ANALYTICS_URL                          = 'https://www.google-analytics.com';
+
     const LOG_FILENAME                                  = 'Webgriffe_ServerGoogleAnalytics.log';
 
     const XML_PATH_SERVERGOOGLEANALYTICS_ENABLED        = 'google/servergoogleanalytics/enabled';
     const XML_PATH_SERVERGOOGLEANALYTICS_ACCOUNT        = 'google/servergoogleanalytics/account';
     const XML_PATH_SERVERGOOGLEANALYTICS_METHOD         = 'google/servergoogleanalytics/method';
+    const XML_PATH_SERVERGOOGLEANALYTICS_DRYRUN         = 'google/servergoogleanalytics/dry-run';
 
     const GA_ALREADY_SENT_ADDITIONAL_INFORMATION_KEY    = 'ga_already_sent';
     const GA_CLIENT_ID_ADDITIONAL_INFORMATION_KEY       = 'ga_client_id';
@@ -126,8 +129,11 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
 
         $this->log('Transaction params: '.print_r($params, true));
 
-        /** @var \Guzzle\Http\Message\Response $response */
-        $response = $client->transaction($params);
+        $response = new \Guzzle\Http\Message\Response(200, null, 'Dry run mode enabled');
+        if (!$this->isDryRun($order->getStoreId())) {
+            /** @var \Guzzle\Http\Message\Response $response */
+            $response = $client->transaction($params);
+        }
 
         $this->log('Transaction response: '.$response->getBody(true));
 
@@ -149,7 +155,10 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
 
             $this->log("Item {$item->getId()} params: ".print_r($params, true));
 
-            $response = $client->item($params);
+            $response = new \Guzzle\Http\Message\Response(200, null, 'Dry run mode enabled');
+            if (!$this->isDryRun($order->getStoreId())) {
+                $response = $client->item($params);
+            }
 
             $this->log("Item {$item->getId()} response: ".$response->getBody(true));
         }
@@ -217,16 +226,22 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
         }
 
         $this->log("Transaction params for order '{$order->getIncrementId()}': ".print_r($params, true));
+        $rawPostData = utf8_encode(http_build_query($params));
+        $this->log("Transaction raw post data '{$order->getIncrementId()}': {$rawPostData}");
 
         $ch = curl_init();
         try {
-            curl_setopt($ch, CURLOPT_URL, 'https://www.google-analytics.com/collect');
+            curl_setopt($ch, CURLOPT_URL, self::HTTPS_WWW_GOOGLE_ANALYTICS_COM . '/collect');
             curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-type: application/x-www-form-urlencoded'));
             curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
             curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, utf8_encode(http_build_query($params)));
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $rawPostData);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            $response = curl_exec($ch);
+
+            $response = 'Dry run mode enabled';
+            if (!$this->isDryRun($order->getStoreId())) {
+                $response = curl_exec($ch);
+            }
 
             $this->log("Transaction response for order '{$order->getIncrementId()}': " . $response->getBody(true));
 
@@ -433,6 +448,15 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
     protected function getMethod($storeId)
     {
         return Mage::getStoreConfig(self::XML_PATH_SERVERGOOGLEANALYTICS_METHOD, $storeId);
+    }
+
+    /**
+     * @param $storeId
+     * @return bool
+     */
+    protected function isDryRun($storeId)
+    {
+        return Mage::getStoreConfigFlag(self::XML_PATH_SERVERGOOGLEANALYTICS_DRYRUN, $storeId);
     }
 
     /**

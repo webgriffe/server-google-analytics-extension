@@ -38,6 +38,16 @@
                             <show_in_store>1</show_in_store>
                             <comment>If set, this Google analytics account number overrides the one retrieved from the Magento configuration and from the Fooman module when tracking orders.</comment>
                         </account>
+                        <dry-run translate="label,comment">
+                            <label><![CDATA[Dry run mode]]></label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>40</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>If enabled, the module will do everything as it would to track the transaction, except for the final call to Google.</comment>
+                        </dry-run>
                     </fields>
                 </servergoogleanalytics>
             </groups>
