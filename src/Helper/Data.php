@@ -107,8 +107,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             return false;
         }
 
-        //Remove "GA1.2." from the beginning of the cookie content
-        $cid = preg_replace('/^GA1\.2\./', '', $cid);
+        $cid = $this->cleanCookieValue($cid);
 
         $params = array(
             'tid' => $accountNumber,                            // Tracking ID / Property ID.
@@ -171,24 +170,28 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             return false;
         }
 
-        //Remove "GA1.2." from the beginning of the cookie content
-        $cid = preg_replace('/^GA1\.2\./', '', $cid);
+        $cid = $this->cleanCookieValue($cid);
 
-        $baseUrl = Mage::getStoreConfig('web/secure/base_url', $order->getStoreId());
+        $checkoutSuccessUrl = Mage::getUrl('checkout/onepage/success', array('_store' => $order->getStoreId()));
+        $isAnonymizationActive = (int)$this->isAnonymizationActive($order->getStoreId());
         $params = array(
-            'v'     => 1,                                   // Version.
-            'tid'   => $accountNumber,                      // Tracking ID / Property ID.
-            'cid'   => $cid,                                // Anonymous Client ID.
-            't'     => 'pageview',                          // Pageview hit type.
-            'dl'    => $baseUrl,                            // Document hostname.
+            'v'     => 1,                                           // Version.
+            'tid'   => $accountNumber,                              // Tracking ID / Property ID.
+            'cid'   => $cid,                                        // Anonymous Client ID.
+            'aip'   => $isAnonymizationActive,                      // Anonymize IP
+            'ds'    => 'Server-side transaction tracking',          // Data source
+            't'     => 'pageview',                                  // Pageview hit type.
+            'dl'    => $checkoutSuccessUrl,                         // Document hostname.
+            'dt'    => 'Server-side transaction tracking',          // Document title
 
-            'ti'    => $order->getIncrementId(),            // Transaction ID. Required.
-            'ta'    => $order->getStore()->getName(),       // Affiliation.
-            'tr'    => $order->getBaseGrandTotal(),         // Revenue.
-            'tt'    => $order->getBaseTaxAmount(),          // Tax.
-            'ts'    => $order->getBaseShippingAmount(),     // Shipping.
+            'ti'    => $order->getIncrementId(),                    // Transaction ID. Required.
+            'ta'    => $order->getStore()->getName(),               // Affiliation.
+            'tr'    => $order->getBaseGrandTotal(),                 // Revenue.
+            'tt'    => $order->getBaseTaxAmount(),                  // Tax.
+            'ts'    => $order->getBaseShippingAmount(),             // Shipping.
+            'cu'    => $order->getBaseCurrencyCode(),               // Currency code
 
-            'pa'    => 'purchase',                          // Product action (purchase). Required.
+            'pa'    => 'purchase',                                  // Product action (purchase). Required.
         );
 
         $index = 1;
@@ -205,23 +208,41 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
                 )
             );
             ++$index;
+            if ($index > 200) {
+                //At most 200 items are supported by Google
+                break;
+            }
         }
 
-        $this->log('Transaction params: '.print_r($params, true));
+        $this->log("Transaction params for order '{$order->getIncrementId()}': ".print_r($params, true));
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'https://www.google-analytics.com/collect');
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-type: application/x-www-form-urlencoded'));
-        curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, utf8_encode(http_build_query($params)));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $response = curl_exec($ch);
-        curl_close($ch);
+        try {
+            curl_setopt($ch, CURLOPT_URL, 'https://www.google-analytics.com/collect');
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-type: application/x-www-form-urlencoded'));
+            curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, utf8_encode(http_build_query($params)));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            $response = curl_exec($ch);
 
-        $this->log('Transaction response: '.$response->getBody(true));
+            $this->log("Transaction response for order '{$order->getIncrementId()}': " . $response->getBody(true));
 
-        return true;
+            if ($response === false) {
+                //Error detected. Handle it in the catch block
+                throw new \Exception('curl_exec() returned false');
+            }
+
+            $this->log("Transaction tracking for order '{$order->getIncrementId()}' is complete");
+            return true;
+        } catch (Exception $ex) {
+            $this->log("Curl call failed: {$ex->getMessage()}", Zend_Log::CRIT);
+            $this->log('Error number: '.curl_errno($ch).' Error message: '.curl_error($ch), Zend_Log::CRIT);
+        } finally {
+            curl_close($ch);
+        }
+
+        return false;
     }
 
     /**
@@ -410,6 +431,16 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
     protected function getMethod($storeId)
     {
         return Mage::getStoreConfig(self::XML_PATH_SERVERGOOGLEANALYTICS_METHOD, $storeId);
+    }
+
+    /**
+     * @param $value
+     * @return string
+     */
+    protected function cleanCookieValue($value)
+    {
+        //Remove "GA1.2." from the beginning of the cookie content
+        return preg_replace('/^GA1\.2\./', '', $value);
     }
 
     public function log($message, $level = Zend_Log::DEBUG, $forceLog = false)
