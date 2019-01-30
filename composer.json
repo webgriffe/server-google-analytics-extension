@@ -11,7 +11,7 @@
   ],
   "require": {
     "krizon/php-ga-measurement-protocol": "*",
-    "curl/curl": "*"
+    "ext-curl": "*"
   },
   "suggest": {
     "fooman/googleanalyticsplus": "A free module that adds several configuration options, as well as support for google analytics universal"
