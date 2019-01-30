@@ -46,7 +46,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <comment>With this option enabled, transactions are tracked when an invoice for the order is marked as 'paid'.</comment>
+                            <comment>With this option enabled, transactions are tracked when an invoice for the order is marked as 'paid'. If you set this to 'no', you will have to manually call the Webgriffe_ServerGoogleAnalytics_Helper_Data::trackConversion() method in order to track each transaction.</comment>
                         </track-on-invoice-paid>
                         <dry-run translate="label,comment">
                             <label><![CDATA[Dry run mode]]></label>
