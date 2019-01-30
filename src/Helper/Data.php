@@ -58,7 +58,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             }
 
             $isEecTrackingEnabled = $this->getMethod($order->getStoreId()) ==
-                Webgriffe_ServerGoogleAnalytics_System_Config_Source_Method::ENHANCED_ECOMMERCE_METHOD;
+                Webgriffe_ServerGoogleAnalytics_Model_System_Config_Source_Method::ENHANCED_ECOMMERCE_METHOD;
 
             $this->log("Before tracking transaction for order '{$order->getIncrementId()}'");
             if ($isEecTrackingEnabled) {
