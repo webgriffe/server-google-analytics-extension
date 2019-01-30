@@ -64,4 +64,12 @@
             </modules>
         </translate>
     </adminhtml>
+
+    <default>
+        <google>
+            <servergoogleanalytics>
+                <track-on-invoice-paid>1</track-on-invoice-paid>
+            </servergoogleanalytics>
+        </google>
+    </default>
 </config>

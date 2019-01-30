@@ -67,7 +67,8 @@ class Webgriffe_ServerGoogleAnalytics_Model_Observer
         /** @var Mage_Sales_Model_Order_Invoice $invoice */
         $invoice = $observer->getData('invoice');
 
-        if (!$this->helper->isEnabled($invoice->getStoreId())) {
+        if (!$this->helper->isEnabled($invoice->getStoreId()) ||
+            !Mage::getStoreConfigFlag('google/servergoogleanalytics/track-on-invoice-paid')) {
             return;
         }
 
