@@ -243,7 +243,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
                 $response = curl_exec($ch);
             }
 
-            $this->log("Transaction response for order '{$order->getIncrementId()}': " . $response->getBody(true));
+            $this->log("Transaction response for order '{$order->getIncrementId()}': " . $response);
 
             if ($response === false) {
                 //Error detected. Handle it in the catch block
