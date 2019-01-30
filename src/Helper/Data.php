@@ -231,7 +231,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
 
         $ch = curl_init();
         try {
-            curl_setopt($ch, CURLOPT_URL, self::HTTPS_WWW_GOOGLE_ANALYTICS_COM . '/collect');
+            curl_setopt($ch, CURLOPT_URL, self::GOOGLE_ANALYTICS_URL . '/collect');
             curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-type: application/x-www-form-urlencoded'));
             curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
             curl_setopt($ch, CURLOPT_POST, true);
