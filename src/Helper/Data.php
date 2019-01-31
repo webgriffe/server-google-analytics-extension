@@ -173,6 +173,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
      */
     protected function trackConversionEnhancedEcommerce(Mage_Sales_Model_Order $order)
     {
+        $orderStore = $order->getStore();
         $accountNumber = $this->getGaAccountNumber($order->getStoreId());
 
         $cid = $this->getClientId($order);
@@ -183,7 +184,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
 
         $cid = $this->cleanCookieValue($cid);
 
-        $checkoutSuccessUrl = Mage::getUrl('checkout/onepage/success', array('_store' => $order->getStoreId()));
+        $checkoutSuccessUrl = Mage::getUrl('checkout/onepage/success', array('_store' => $orderStore));
         $isAnonymizationActive = (int)$this->isAnonymizationActive($order->getStoreId());
         $params = array(
             'v'     => 1,                                           // Version.
@@ -196,10 +197,10 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             'dt'    => 'Server-side transaction tracking',          // Document title
 
             'ti'    => $order->getIncrementId(),                    // Transaction ID. Required.
-            'ta'    => $order->getStore()->getName(),               // Affiliation.
-            'tr'    => $order->getBaseGrandTotal(),                 // Revenue.
-            'tt'    => $order->getBaseTaxAmount(),                  // Tax.
-            'ts'    => $order->getBaseShippingAmount(),             // Shipping.
+            'ta'    => $this->getAffiliation($order),               // Affiliation.
+            'tr'    => $orderStore->formatPrice($order->getBaseGrandTotal(), false),        // Revenue.
+            'tt'    => $orderStore->formatPrice($order->getBaseTaxAmount(), false),         // Tax.
+            'ts'    => $orderStore->formatPrice($order->getBaseShippingAmount(), false),    // Shipping.
             'cu'    => $order->getBaseCurrencyCode(),               // Currency code
 
             'pa'    => 'purchase',                                  // Product action (purchase). Required.
@@ -214,7 +215,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
                     "pr{$index}id" => $item->getSku(),              // Product ID. Either ID or name must be set.
                     "pr{$index}nm" => $item->getName(),             // Product name. Either ID or name must be set.
                     "pr{$index}ca" => $this->getCategory($item),    // Product category.
-                    "pr{$index}pr" => $item->getBasePrice(),        // Product price
+                    "pr{$index}pr" => $orderStore->formatPrice($item->getBasePrice(), false),   // Product price
                     "pr{$index}qt" => $item->getQtyOrdered(),       // Product quantity
                 )
             );
@@ -300,6 +301,19 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
     {
         return $order->getPayment()->setAdditionalInformation(self::GA_CLIENT_ID_ADDITIONAL_INFORMATION_KEY, $value)
             ->save();
+    }
+
+    protected function getAffiliation(Mage_Sales_Model_Order $order)
+    {
+        //Dispatch an event so that it is possible to change which category is used here
+        $data = new Varien_Object(array('order' => $order, 'affiliation' => null));
+        Mage::dispatchEvent(
+            'google_analytics_transaction_tracking_order_affiliation',
+            array('data' => $data)
+        );
+
+        return $data->getData('affiliation') ?:
+            Mage::getStoreConfig('general/store_information/name', $order->getStoreId());
     }
 
     protected function getCategory(Mage_Sales_Model_Order_Item $item)
