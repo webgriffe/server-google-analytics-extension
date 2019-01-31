@@ -10,6 +10,8 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
 {
     const GOOGLE_ANALYTICS_URL                          = 'https://www.google-analytics.com';
 
+    const TRANSACTION_DOCUMENT_TITLE                    = 'Server-side transaction tracking';
+
     const LOG_FILENAME                                  = 'Webgriffe_ServerGoogleAnalytics.log';
 
     const XML_PATH_SERVERGOOGLEANALYTICS_ENABLED        = 'google/servergoogleanalytics/enabled';
@@ -187,43 +189,49 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
         $checkoutSuccessUrl = Mage::getUrl('checkout/onepage/success', array('_store' => $orderStore));
         $isAnonymizationActive = (int)$this->isAnonymizationActive($order->getStoreId());
         $params = array(
-            'v'     => 1,                                           // Version.
-            'tid'   => $accountNumber,                              // Tracking ID / Property ID.
-            'cid'   => $cid,                                        // Anonymous Client ID.
-            'aip'   => $isAnonymizationActive,                      // Anonymize IP
-            'ds'    => 'Server-side transaction tracking',          // Data source
-            't'     => 'pageview',                                  // Pageview hit type.
-            'dl'    => $checkoutSuccessUrl,                         // Document hostname.
-            'dt'    => 'Server-side transaction tracking',          // Document title
+            'v'     => 1,                                               // Version.
+            'tid'   => $accountNumber,                                  // Tracking ID / Property ID.
+            'cid'   => $cid,                                            // Anonymous Client ID.
+            'aip'   => $isAnonymizationActive,                          // Anonymize IP
+            'ds'    => self::TRANSACTION_DOCUMENT_TITLE,                // Data source
+            't'     => 'pageview',                                      // Pageview hit type.
+            'dl'    => $checkoutSuccessUrl,                             // Document hostname.
+            'dt'    => self::TRANSACTION_DOCUMENT_TITLE,                // Document title
 
-            'ti'    => $order->getIncrementId(),                    // Transaction ID. Required.
-            'ta'    => $this->getAffiliation($order),               // Affiliation.
+            'ti'    => $order->getIncrementId(),                        // Transaction ID. Required.
+            'ta'    => $this->getAffiliation($order),                   // Affiliation.
             'tr'    => $orderStore->roundPrice($order->getBaseGrandTotal()),        // Revenue.
             'tt'    => $orderStore->roundPrice($order->getBaseTaxAmount()),         // Tax.
             'ts'    => $orderStore->roundPrice($order->getBaseShippingAmount()),    // Shipping.
-            'cu'    => $order->getBaseCurrencyCode(),               // Currency code
+            'cu'    => $order->getBaseCurrencyCode(),                   // Currency code
 
-            'pa'    => 'purchase',                                  // Product action (purchase). Required.
+            'pa'    => 'purchase',                                      // Product action (purchase). Required.
         );
 
         $index = 1;
         /** @var Mage_Sales_Model_Order_Item $item */
         foreach ($order->getAllVisibleItems() as $item) {
+            if ($index > 200) {
+                //At most 200 items are supported by Google
+                $this->log(
+                    "Order '{$order->getIncrementId()}' has more than 200 items. Stopping there.",
+                    Zend_Log::WARN
+                );
+                break;
+            }
+
             $params = array_merge(
                 $params,
                 array(
-                    "pr{$index}id" => $item->getSku(),              // Product ID. Either ID or name must be set.
-                    "pr{$index}nm" => $item->getName(),             // Product name. Either ID or name must be set.
-                    "pr{$index}ca" => $this->getCategory($item),    // Product category.
+                    "pr{$index}id" => $item->getSku(),                  // Product ID. Either ID or name must be set.
+                    "pr{$index}nm" => $item->getName(),                 // Product name. Either ID or name must be set.
+                    "pr{$index}ca" => $this->getCategory($item),        // Product category.
                     "pr{$index}pr" => $orderStore->roundPrice($item->getBasePrice()),   // Product price
-                    "pr{$index}qt" => $item->getQtyOrdered(),       // Product quantity
+                    "pr{$index}qt" => intval($item->getQtyOrdered()),   // Product quantity
                 )
             );
+
             ++$index;
-            if ($index > 200) {
-                //At most 200 items are supported by Google
-                break;
-            }
         }
 
         $this->log("Transaction params for order '{$order->getIncrementId()}': ".print_r($params, true));
