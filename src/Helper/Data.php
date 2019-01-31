@@ -198,9 +198,9 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
 
             'ti'    => $order->getIncrementId(),                    // Transaction ID. Required.
             'ta'    => $this->getAffiliation($order),               // Affiliation.
-            'tr'    => $orderStore->formatPrice($order->getBaseGrandTotal(), false),        // Revenue.
-            'tt'    => $orderStore->formatPrice($order->getBaseTaxAmount(), false),         // Tax.
-            'ts'    => $orderStore->formatPrice($order->getBaseShippingAmount(), false),    // Shipping.
+            'tr'    => $orderStore->roundPrice($order->getBaseGrandTotal()),        // Revenue.
+            'tt'    => $orderStore->roundPrice($order->getBaseTaxAmount()),         // Tax.
+            'ts'    => $orderStore->roundPrice($order->getBaseShippingAmount()),    // Shipping.
             'cu'    => $order->getBaseCurrencyCode(),               // Currency code
 
             'pa'    => 'purchase',                                  // Product action (purchase). Required.
@@ -215,7 +215,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
                     "pr{$index}id" => $item->getSku(),              // Product ID. Either ID or name must be set.
                     "pr{$index}nm" => $item->getName(),             // Product name. Either ID or name must be set.
                     "pr{$index}ca" => $this->getCategory($item),    // Product category.
-                    "pr{$index}pr" => $orderStore->formatPrice($item->getBasePrice(), false),   // Product price
+                    "pr{$index}pr" => $orderStore->roundPrice($item->getBasePrice()),   // Product price
                     "pr{$index}qt" => $item->getQtyOrdered(),       // Product quantity
                 )
             );
