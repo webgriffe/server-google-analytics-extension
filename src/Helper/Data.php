@@ -193,7 +193,6 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             'tid'   => $accountNumber,                                  // Tracking ID / Property ID.
             'cid'   => $cid,                                            // Anonymous Client ID.
             'aip'   => $isAnonymizationActive,                          // Anonymize IP
-            'ds'    => self::TRANSACTION_DOCUMENT_TITLE,                // Data source
             't'     => 'pageview',                                      // Pageview hit type.
             'dl'    => $checkoutSuccessUrl,                             // Document hostname.
             'dt'    => self::TRANSACTION_DOCUMENT_TITLE,                // Document title
@@ -223,7 +222,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             $params = array_merge(
                 $params,
                 array(
-                    "pr{$index}id" => $item->getSku(),                  // Product ID. Either ID or name must be set.
+                    "pr{$index}id" => $item->getId(),                   // Product ID. Either ID or name must be set.
                     "pr{$index}nm" => $item->getName(),                 // Product name. Either ID or name must be set.
                     "pr{$index}ca" => $this->getCategory($item),        // Product category.
                     "pr{$index}pr" => $orderStore->roundPrice($item->getBasePrice()),   // Product price
