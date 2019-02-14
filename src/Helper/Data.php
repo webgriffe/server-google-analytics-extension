@@ -207,6 +207,10 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             'pa'    => 'purchase',                                      // Product action (purchase). Required.
         );
 
+        if ($order->getCouponCode()) {
+            $params['tcc'] = $order->getCouponCode();
+        }
+
         $index = 1;
         /** @var Mage_Sales_Model_Order_Item $item */
         foreach ($order->getAllVisibleItems() as $item) {
@@ -229,6 +233,15 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
                     "pr{$index}qt" => intval($item->getQtyOrdered()),   // Product quantity
                 )
             );
+
+            //@todo: add support for grouped and bundle products
+            if ($item->getProductType() == Mage_Catalog_Model_Product_Type::TYPE_CONFIGURABLE) {
+                /** @var Mage_Sales_Model_Order_Item $childItem */
+                $childItem = reset($item->getChildrenItems());
+                if ($childItem) {
+                    $params["pr{$index}va"] = $childItem->getProductId();
+                }
+            }
 
             ++$index;
         }
