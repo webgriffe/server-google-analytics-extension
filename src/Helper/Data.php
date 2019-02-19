@@ -18,6 +18,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
     const XML_PATH_SERVERGOOGLEANALYTICS_ACCOUNT        = 'google/servergoogleanalytics/account';
     const XML_PATH_SERVERGOOGLEANALYTICS_METHOD         = 'google/servergoogleanalytics/method';
     const XML_PATH_SERVERGOOGLEANALYTICS_DRYRUN         = 'google/servergoogleanalytics/dry-run';
+    const XML_PATH_SERVERGOOGLEANALYTICS_SECONDARY      = 'google/servergoogleanalytics/secondary-account';
 
     const GA_ALREADY_SENT_ADDITIONAL_INFORMATION_KEY    = 'ga_already_sent';
     const GA_CLIENT_ID_ADDITIONAL_INFORMATION_KEY       = 'ga_client_id';
@@ -247,23 +248,13 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
         }
 
         $this->log("Transaction params for order '{$order->getIncrementId()}': ".print_r($params, true));
-        $rawPostData = utf8_encode(http_build_query($params));
+        $rawPostData = $this->prepareCurlParams($params);
         $this->log("Transaction raw post data '{$order->getIncrementId()}': {$rawPostData}");
 
         $ch = curl_init();
         try {
-            curl_setopt($ch, CURLOPT_URL, self::GOOGLE_ANALYTICS_URL . '/collect');
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-type: application/x-www-form-urlencoded'));
-            curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $rawPostData);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-            $response = 'Dry run mode enabled';
-            if (!$this->isDryRun($order->getStoreId())) {
-                $response = curl_exec($ch);
-            }
-
+            $isDryRun = $this->isDryRun($order->getStoreId());
+            $response = $this->sendCurlRequest($ch, $rawPostData, $isDryRun);
             $this->log("Transaction response for order '{$order->getIncrementId()}': " . $response);
 
             if ($response === false) {
@@ -272,6 +263,28 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             }
 
             $this->log("Transaction tracking for order '{$order->getIncrementId()}' is complete");
+
+            if ($secondaryAccount = $this->getSecondaryAccount($order->getStoreId())) {
+                $this->log(
+                    "Also sending transaction data for order '{$order->getIncrementId()}' ".
+                    "to secondary account '{$secondaryAccount}'"
+                );
+
+                $secondaryParams = $params;
+                $secondaryParams['tid'] = $secondaryAccount;
+                $secondaryResponse = $this->sendCurlRequest($ch, $this->prepareCurlParams($secondaryParams), $isDryRun);
+                $this->log(
+                    "Transaction response for order '{$order->getIncrementId()}' secondary account: " . $response
+                );
+
+                if ($response === false) {
+                    //Error detected. Handle it in the catch block
+                    throw new \Exception('curl_exec() returned false');
+                }
+
+                $this->log("Secondary tracking for order '{$order->getIncrementId()}' is complete");
+            }
+
             return true;
         } catch (Exception $ex) {
             $this->log("Curl call failed: {$ex->getMessage()}", Zend_Log::CRIT);
@@ -366,6 +379,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
     }
 
     /**
+     * @param int $storeId
      * @return string
      */
     protected function getGaAccountNumber($storeId)
@@ -380,6 +394,16 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
     }
 
     /**
+     * @param int $storeId
+     * @return string
+     */
+    protected function getSecondaryAccount($storeId)
+    {
+        return Mage::getStoreConfig(self::XML_PATH_SERVERGOOGLEANALYTICS_SECONDARY, $storeId);
+    }
+
+    /**
+     * @param int $storeId
      * @return bool
      */
     protected function isAnonymizationActive($storeId)
@@ -491,6 +515,39 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
     protected function isDryRun($storeId)
     {
         return Mage::getStoreConfigFlag(self::XML_PATH_SERVERGOOGLEANALYTICS_DRYRUN, $storeId);
+    }
+
+    /**
+     * @param array $params
+     * @return string
+     */
+    protected function prepareCurlParams($params)
+    {
+        return utf8_encode(http_build_query($params));
+    }
+
+    /**
+     * @param $ch Curl channel
+     * @param string $rawPostData
+     * @param bool $isDryRun
+     *
+     * @return string
+     */
+    protected function sendCurlRequest($ch, $rawPostData, $isDryRun)
+    {
+        curl_setopt($ch, CURLOPT_URL, self::GOOGLE_ANALYTICS_URL . '/collect');
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-type: application/x-www-form-urlencoded'));
+        curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $rawPostData);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        $response = 'Dry run mode enabled';
+        if (!$isDryRun) {
+            $response = curl_exec($ch);
+        }
+
+        return $response;
     }
 
     /**

@@ -58,6 +58,15 @@
                             <show_in_store>1</show_in_store>
                             <comment>If enabled, the module will do everything as it would to track the transaction, except for the final call to Google.</comment>
                         </dry-run>
+                        <secondary-account translate="label,comment">
+                            <label><![CDATA[Additional account for transactions tracking]]></label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>60</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>If set, transactions are also sent to this account in addition to the main one.</comment>
+                        </secondary-account>
                     </fields>
                 </servergoogleanalytics>
             </groups>
