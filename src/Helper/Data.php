@@ -212,6 +212,11 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             $params['tcc'] = $order->getCouponCode();
         }
 
+        $qt = $this->getQueueTime($order);
+        if ($qt !== false) {
+            $params['qt'] = $qt;
+        }
+
         $index = 1;
         /** @var Mage_Sales_Model_Order_Item $item */
         foreach ($order->getAllVisibleItems() as $item) {
@@ -347,6 +352,25 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
 
         return $data->getData('affiliation') ?:
             Mage::getStoreConfig('general/store_information/name', $order->getStoreId());
+    }
+
+    protected function getQueueTime(Mage_Sales_Model_Order $order)
+    {
+        $createdAt = DateTime::createFromFormat(
+            Varien_Db_Adapter_Pdo_Mysql::DATETIME_FORMAT,
+            $order->getCreatedAt(),
+            new \DateTimeZone('UTC')
+        );
+
+        $now = new \DateTime('now', new \DateTimeZone('UTC'));
+        $seconds = $now->getTimestamp() - $createdAt->getTimestamp();
+
+        //From the docs "Values greater than four hours may lead to hits not being processed."
+        if ($seconds > (3600 * 4)) {
+            return false;
+        }
+
+        return $seconds * 1000;
     }
 
     protected function getCategory(Mage_Sales_Model_Order_Item $item)
