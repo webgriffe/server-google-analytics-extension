@@ -580,9 +580,9 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
      */
     protected function cleanCookieValue($value)
     {
-        //Remove "GA1.2." and "GA1.3." from the beginning of the cookie content
-        //Do not put a generic expression here because we do not know whether it will all work when GA1.4 shows up
-        return preg_replace('/^GA1\.(?:2|3)\./', '', $value);
+        //Remove "GA1.2." and the like  from the beginning of the cookie content
+        //See: https://stackoverflow.com/questions/16102436/what-are-the-values-in-ga-cookie
+        return preg_replace('/^GA1\.\d+\./', '', $value);
     }
 
     public function log($message, $level = Zend_Log::DEBUG, $forceLog = false)
