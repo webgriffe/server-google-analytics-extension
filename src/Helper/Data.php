@@ -366,7 +366,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
         $seconds = $now->getTimestamp() - $createdAt->getTimestamp();
 
         //From the docs "Values greater than four hours may lead to hits not being processed."
-        if ($seconds > (3600 * 4)) {
+        if ($seconds >= (3600 * 4)) {
             return false;
         }
 
