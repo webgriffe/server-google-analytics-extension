@@ -386,6 +386,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             return $categoryName;
         }
 
+        //Default behavior: Get the name of the first category that the product is associated to
         $product = Mage::getModel('catalog/product')->load($item->getProductId());
         if (!$product) {
             return null;
