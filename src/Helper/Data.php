@@ -176,23 +176,82 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
      */
     protected function trackConversionEnhancedEcommerce(Mage_Sales_Model_Order $order)
     {
-        $orderStore = $order->getStore();
-        $accountNumber = $this->getGaAccountNumber($order->getStoreId());
+        $params = $this->getEnhancedEcommerceParams($order);
+        if ($params === false) {
+            return $params;
+        }
 
+        $this->log("Transaction params for order '{$order->getIncrementId()}': ".print_r($params, true));
+        $rawPostData = $this->prepareCurlParams($params);
+        $this->log("Transaction raw post data '{$order->getIncrementId()}': {$rawPostData}");
+
+        $ch = curl_init();
+        try {
+            $isDryRun = $this->isDryRun($order->getStoreId());
+            $response = $this->sendCurlRequest($ch, $rawPostData, $isDryRun);
+            $this->log("Transaction response for order '{$order->getIncrementId()}': " . $response);
+
+            if ($response === false) {
+                //Error detected. Handle it in the catch block
+                throw new \Exception('curl_exec() returned false');
+            }
+
+            $this->log("Transaction tracking for order '{$order->getIncrementId()}' is complete");
+
+            if ($secondaryAccount = $this->getSecondaryAccount($order->getStoreId())) {
+                $this->log(
+                    "Also sending transaction data for order '{$order->getIncrementId()}' ".
+                    "to secondary account '{$secondaryAccount}'"
+                );
+
+                $secondaryParams = $params;
+                $secondaryParams['tid'] = $secondaryAccount;
+                $secondaryResponse = $this->sendCurlRequest($ch, $this->prepareCurlParams($secondaryParams), $isDryRun);
+                $this->log(
+                    "Transaction response for order '{$order->getIncrementId()}' secondary account: " . $response
+                );
+
+                if ($response === false) {
+                    //Error detected. Handle it in the catch block
+                    throw new \Exception('curl_exec() returned false');
+                }
+
+                $this->log("Secondary tracking for order '{$order->getIncrementId()}' is complete");
+            }
+
+            return true;
+        } catch (Exception $ex) {
+            $this->log("Curl call failed: {$ex->getMessage()}", Zend_Log::CRIT);
+            $this->log('Error number: '.curl_errno($ch).' Error message: '.curl_error($ch), Zend_Log::CRIT);
+        } finally {
+            curl_close($ch);
+        }
+
+        return false;
+    }
+
+    /**
+     * @param Mage_Sales_Model_Order $order
+     *
+     * @return array|false
+     */
+    protected function getEnhancedEcommerceParams(Mage_Sales_Model_Order $order)
+    {
         $cid = $this->getClientId($order);
         if (empty($cid)) {
             $this->log("Could not track order '{$order->getIncrementId()}': client id not available", Zend_Log::CRIT);
             return false;
         }
 
-        $cid = $this->cleanCookieValue($cid);
+        $orderStore = $order->getStore();
+        $accountNumber = $this->getGaAccountNumber($order->getStoreId());
 
         $checkoutSuccessUrl = Mage::getUrl('checkout/onepage/success', array('_store' => $orderStore));
         $isAnonymizationActive = (int)$this->isAnonymizationActive($order->getStoreId());
         $params = array(
             'v'     => 1,                                               // Version.
             'tid'   => $accountNumber,                                  // Tracking ID / Property ID.
-            'cid'   => $cid,                                            // Anonymous Client ID.
+            'cid'   => $this->cleanCookieValue($cid),                   // Anonymous Client ID.
             'aip'   => $isAnonymizationActive,                          // Anonymize IP
             't'     => 'pageview',                                      // Pageview hit type.
             'dl'    => $checkoutSuccessUrl,                             // Document hostname.
@@ -252,53 +311,7 @@ class Webgriffe_ServerGoogleAnalytics_Helper_Data extends Mage_Core_Helper_Abstr
             ++$index;
         }
 
-        $this->log("Transaction params for order '{$order->getIncrementId()}': ".print_r($params, true));
-        $rawPostData = $this->prepareCurlParams($params);
-        $this->log("Transaction raw post data '{$order->getIncrementId()}': {$rawPostData}");
-
-        $ch = curl_init();
-        try {
-            $isDryRun = $this->isDryRun($order->getStoreId());
-            $response = $this->sendCurlRequest($ch, $rawPostData, $isDryRun);
-            $this->log("Transaction response for order '{$order->getIncrementId()}': " . $response);
-
-            if ($response === false) {
-                //Error detected. Handle it in the catch block
-                throw new \Exception('curl_exec() returned false');
-            }
-
-            $this->log("Transaction tracking for order '{$order->getIncrementId()}' is complete");
-
-            if ($secondaryAccount = $this->getSecondaryAccount($order->getStoreId())) {
-                $this->log(
-                    "Also sending transaction data for order '{$order->getIncrementId()}' ".
-                    "to secondary account '{$secondaryAccount}'"
-                );
-
-                $secondaryParams = $params;
-                $secondaryParams['tid'] = $secondaryAccount;
-                $secondaryResponse = $this->sendCurlRequest($ch, $this->prepareCurlParams($secondaryParams), $isDryRun);
-                $this->log(
-                    "Transaction response for order '{$order->getIncrementId()}' secondary account: " . $response
-                );
-
-                if ($response === false) {
-                    //Error detected. Handle it in the catch block
-                    throw new \Exception('curl_exec() returned false');
-                }
-
-                $this->log("Secondary tracking for order '{$order->getIncrementId()}' is complete");
-            }
-
-            return true;
-        } catch (Exception $ex) {
-            $this->log("Curl call failed: {$ex->getMessage()}", Zend_Log::CRIT);
-            $this->log('Error number: '.curl_errno($ch).' Error message: '.curl_error($ch), Zend_Log::CRIT);
-        } finally {
-            curl_close($ch);
-        }
-
-        return false;
+        return $params;
     }
 
     /**
